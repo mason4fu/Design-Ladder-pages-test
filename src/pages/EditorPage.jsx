@@ -106,6 +106,8 @@ function EditorPage() {
           selectedElement={selectedElement}
           projects={appState.projects}
           onBackgroundChange={setCanvasBackground}
+          handleSave={handleSave}
+          handleDownload={handleDownload}
         />
         
         <div className="editor-center">
@@ -151,7 +153,7 @@ function EditorPage() {
         />
       </div>
 
-      <div className="editor-bottom">
+      {/* <div className="editor-bottom">
         <button className="save-btn" onClick={handleSave}>
           SAVE
         </button>
@@ -169,7 +171,7 @@ function EditorPage() {
             </div>
           )}
         </div>
-      </div>
+      </div> */}
 
       {showSaveConfirm && (
         <div className="save-confirm">

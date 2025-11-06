@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './LeftToolbar.css'
 
-function LeftToolbar({ onAddElement, onUpdateElement, selectedElement, projects, onBackgroundChange }) {
+function LeftToolbar({ onAddElement, onUpdateElement, selectedElement, projects, onBackgroundChange, handleSave, handleDownload }) {
   const navigate = useNavigate()
   const [expandedMenu, setExpandedMenu] = useState(null)
   const [expandedSubmenu, setExpandedSubmenu] = useState(null)
   const [showProjects, setShowProjects] = useState(false)
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false)
 
   const textStyles = ['Title', 'Subtitle', 'Heading', 'Body']
   const fonts = ['TimesNewRoman', 'Cambria', 'Arial', 'Helvetica', 'Georgia', 'Ubuntu']
@@ -94,100 +95,121 @@ function LeftToolbar({ onAddElement, onUpdateElement, selectedElement, projects,
         </div>
       )}
 
-      <div className="toolbar-menus">
-        <div className="menu-section">
-          <button
-            className="menu-toggle"
-            onClick={() => toggleMenu('text')}
-          >
-            Text {expandedMenu === 'text' ? '−' : '+'}
-          </button>
-          {expandedMenu === 'text' && (
-            <div className="menu-content">
-              <button
-                className="submenu-toggle"
-                onClick={() => setExpandedSubmenu(expandedSubmenu === 'styles' ? null : 'styles')}
-              >
-                Styles {expandedSubmenu === 'styles' ? '−' : '+'}
-              </button>
-              {expandedSubmenu === 'styles' && (
-                <div className="submenu-content">
-                  {textStyles.map((style) => (
-                    <button
-                      key={style}
-                      className="submenu-item"
-                      onClick={() => handleTextStyleClick(style)}
-                    >
-                      {style}
-                    </button>
-                  ))}
-                </div>
-              )}
-              
-              <button
-                className="submenu-toggle"
-                onClick={() => setExpandedSubmenu(expandedSubmenu === 'font' ? null : 'font')}
-              >
-                Font {expandedSubmenu === 'font' ? '−' : '+'}
-              </button>
-              {expandedSubmenu === 'font' && (
-                <div className="submenu-content">
-                  {fonts.map((font) => (
-                    <button
-                      key={font}
-                      className="submenu-item"
-                      onClick={() => handleFontClick(font)}
-                    >
-                      {font}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="menu-section">
-          <button
-            className="menu-toggle"
-            onClick={() => toggleMenu('elements')}
-          >
-            Elements {expandedMenu === 'elements' ? '−' : '+'}
-          </button>
-          {expandedMenu === 'elements' && (
-            <div className="menu-content elements-grid">
-              {elements.map((element) => (
+      <div className="left-toolbar-scrollable">
+        <div className="toolbar-menus">
+          <div className="menu-section">
+            <button
+              className="menu-toggle"
+              onClick={() => toggleMenu('text')}
+            >
+              Text {expandedMenu === 'text' ? '−' : '+'}
+            </button>
+            {expandedMenu === 'text' && (
+              <div className="menu-content">
                 <button
-                  key={element.id}
-                  className="element-item"
-                  onClick={() => handleElementClick(element)}
-                  title={element.name}
+                  className="submenu-toggle"
+                  onClick={() => setExpandedSubmenu(expandedSubmenu === 'styles' ? null : 'styles')}
                 >
-                  {element.icon}
+                  Styles {expandedSubmenu === 'styles' ? '−' : '+'}
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="menu-section">
-          <button
-            className="menu-toggle"
-            onClick={() => toggleMenu('background')}
-          >
-            Background {expandedMenu === 'background' ? '−' : '+'}
-          </button>
-          {expandedMenu === 'background' && (
-            <div className="menu-content backgrounds-grid">
-              {backgrounds.map((bg) => (
+                {expandedSubmenu === 'styles' && (
+                  <div className="submenu-content">
+                    {textStyles.map((style) => (
+                      <button
+                        key={style}
+                        className="submenu-item"
+                        onClick={() => handleTextStyleClick(style)}
+                      >
+                        {style}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
                 <button
-                  key={bg.id}
-                  className="background-item"
-                  onClick={() => handleBackgroundClick(bg)}
-                  style={{ backgroundColor: bg.color }}
-                  title={bg.name}
-                />
-              ))}
+                  className="submenu-toggle"
+                  onClick={() => setExpandedSubmenu(expandedSubmenu === 'font' ? null : 'font')}
+                >
+                  Font {expandedSubmenu === 'font' ? '−' : '+'}
+                </button>
+                {expandedSubmenu === 'font' && (
+                  <div className="submenu-content">
+                    {fonts.map((font) => (
+                      <button
+                        key={font}
+                        className="submenu-item"
+                        onClick={() => handleFontClick(font)}
+                      >
+                        {font}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="menu-section">
+            <button
+              className="menu-toggle"
+              onClick={() => toggleMenu('elements')}
+            >
+              Elements {expandedMenu === 'elements' ? '−' : '+'}
+            </button>
+            {expandedMenu === 'elements' && (
+              <div className="menu-content elements-grid">
+                {elements.map((element) => (
+                  <button
+                    key={element.id}
+                    className="element-item"
+                    onClick={() => handleElementClick(element)}
+                    title={element.name}
+                  >
+                    {element.icon}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="menu-section">
+            <button
+              className="menu-toggle"
+              onClick={() => toggleMenu('background')}
+            >
+              Background {expandedMenu === 'background' ? '−' : '+'}
+            </button>
+            {expandedMenu === 'background' && (
+              <div className="menu-content backgrounds-grid">
+                {backgrounds.map((bg) => (
+                  <button
+                    key={bg.id}
+                    className="background-item"
+                    onClick={() => handleBackgroundClick(bg)}
+                    style={{ backgroundColor: bg.color }}
+                    title={bg.name}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="left-savebar">
+        <button className="save-btn" onClick={handleSave}>
+          SAVE
+        </button>
+        <div className="download-container">
+          <button className="download-btn" onClick={() => setShowDownloadMenu(!showDownloadMenu)}>
+            DOWNLOAD
+          </button>
+          {showDownloadMenu && (
+            <div className="download-menu">
+              <button onClick={() => handleDownload('PDF')}>PDF</button>
+              <button onClick={() => handleDownload('PNG')}>PNG</button>
+              <button onClick={() => handleDownload('JPEG')}>JPEG</button>
+              <button onClick={() => handleDownload('TIFF')}>TIFF</button>
+              <button onClick={() => handleDownload('AI')}>AI</button>
             </div>
           )}
         </div>
