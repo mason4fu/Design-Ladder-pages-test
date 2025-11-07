@@ -10,6 +10,25 @@ function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [hoveredTemplate, setHoveredTemplate] = useState(null)
 
+
+  //TODO: Implement method to recommend templates
+  // This should use data from appState (quiz answers, topic selections, color choice)
+  // and return a filtered or ranked subset of templates.
+  const getRecommendedTemplates = () => {
+    // Example access:
+    // const { quizAnswers, selectedTopics, selectedColors } = appState
+
+    // Pseudocode:
+    // 1. Filter by matching topic or keywords
+    // 2. Adjust ranking based on color harmony (e.g. match color palette)
+    // 3. Use quiz answers (e.g., “formal” vs “playful”) to bias toward certain styles
+    // 4. Return top N results
+
+    // Example (placeholder):
+    // return templates.filter(t => selectedTopics.includes(t.category))
+
+    return templates // temporarily return all
+  }
   const handleTemplateClick = (template) => {
     setSelectedTemplate(template.id)
   }
