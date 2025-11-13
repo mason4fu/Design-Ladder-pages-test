@@ -1,6 +1,9 @@
+
 import React, { useState, useContext, useCallback, useRef, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
+import { useNavigate } from 'react-router-dom'
+
 import { AppContext } from '../context/AppContext'
 import { getSuggestions } from '../data/suggestions'
 import LeftToolbar from '../components/LeftToolbar'
@@ -9,23 +12,79 @@ import SuggestionsSidebar from '../components/SuggestionsSidebar'
 import './EditorPage.css'
 
 const DEFAULT_CANVAS_ELEMENTS = [
-  { id: 1, type: 'text', content: 'TITLE', style: 'title', x: 100, y: 100, font: 'Arial', fontSize: 48 },
-  { id: 2, type: 'text', content: 'SUBTITLE', style: 'subtitle', x: 100, y: 180, font: 'Arial', fontSize: 32 }
+  { id: 'default-title', type: 'text', content: 'TITLE', style: 'title', x: 100, y: 100, font: 'Arial', fontSize: 48 },
+  { id: 'default-subtitle', type: 'text', content: 'SUBTITLE', style: 'subtitle', x: 100, y: 180, font: 'Arial', fontSize: 32 }
 ]
 
-const cloneElements = (elements = []) => elements.map(element => ({ ...element }))
+// Simple flattening transformation - just extracts nested position/style to top level
+// Templates should provide all properties explicitly
+const normalizeTemplateElements = (elements = []) =>
+  elements.map((element) => {
+    // If already flat (has x, y directly), use as-is
+    if (element.x !== undefined && element.y !== undefined) {
+      return { ...element }
+    }
+
+    // Flatten nested structure
+    const position = element.position || {}
+    const style = element.style || {}
+
+    if (element.type === 'text') {
+      return {
+        id: element.id,
+        type: 'text',
+        content: element.content,
+        style: element.styleName || element.style,
+        x: position.x,
+        y: position.y,
+        font: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        color: style.fill,
+        textAlign: style.textAlign,
+        backgroundColor: style.backgroundColor,
+        maxWidth: style.maxWidth
+      }
+    }
+
+    // Element type - use icon directly from template
+    return {
+      id: element.id,
+      type: 'element',
+      elementType: element.elementType || element.style,
+      icon: element.icon,
+      x: position.x,
+      y: position.y
+    }
+  })
+
+const buildTemplateState = (template) => {
+  if (template?.layout?.elements?.length) {
+    return {
+      elements: normalizeTemplateElements(template.layout.elements),
+      background: template.layout.background || null
+    }
+  }
+
+  return {
+    elements: DEFAULT_CANVAS_ELEMENTS.map(el => ({ ...el })),
+    background: null
+  }
+}
 
 function EditorPage() {
   const { appState, setAppState } = useContext(AppContext)
-  const [canvasElements, setCanvasElements] = useState(() => cloneElements(DEFAULT_CANVAS_ELEMENTS))
+  const initialTemplateState = buildTemplateState(appState.selectedTemplate)
+  const [canvasElements, setCanvasElements] = useState(initialTemplateState.elements)
   const [selectedElement, setSelectedElement] = useState(null)
-  const [history, setHistory] = useState(() => [cloneElements(DEFAULT_CANVAS_ELEMENTS)])
+  const [history, setHistory] = useState([initialTemplateState.elements.map(el => ({ ...el }))])
   const [historyIndex, setHistoryIndex] = useState(0)
   const [showSaveConfirm, setShowSaveConfirm] = useState(false)
-  const [canvasBackground, setCanvasBackground] = useState(null)
+  const [canvasBackground, setCanvasBackground] = useState(initialTemplateState.background)
   const canvasRef = useRef(null)
   const lastLoadedProjectId = useRef(null)
   const hasClearedQuizSelections = useRef(false)
+
 
   const suggestions = getSuggestions(appState.posterType, appState.topics, appState.colors)
 
@@ -49,10 +108,19 @@ function EditorPage() {
 
   const addToHistory = useCallback((newElements) => {
     const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(newElements)
+    newHistory.push(newElements.map(el => ({ ...el })))
     setHistory(newHistory)
     setHistoryIndex(newHistory.length - 1)
   }, [history, historyIndex])
+
+  useEffect(() => {
+    const { elements, background } = buildTemplateState(appState.selectedTemplate)
+    setCanvasElements(elements)
+    setHistory([elements.map(el => ({ ...el }))])
+    setHistoryIndex(0)
+    setSelectedElement(null)
+    setCanvasBackground(background)
+  }, [appState.selectedTemplate])
 
   const handleUndo = () => {
     if (historyIndex > 0) {
