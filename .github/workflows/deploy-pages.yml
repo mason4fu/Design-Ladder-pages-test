@@ -31,9 +31,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate thumbnails
-        run: npm run generate-thumbnails
-
       - name: Build
         run: npm run build
 
