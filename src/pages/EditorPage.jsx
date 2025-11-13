@@ -1,5 +1,5 @@
 
-import React, { useState, useContext, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useContext, useCallback, useRef, useEffect, useMemo } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import { useNavigate } from 'react-router-dom'
@@ -19,7 +19,7 @@ const DEFAULT_CANVAS_ELEMENTS = [
 // Simple flattening transformation - just extracts nested position/style to top level
 // Templates should provide all properties explicitly
 const normalizeTemplateElements = (elements = []) =>
-  elements.map((element) => {
+  elements.map((element, index) => {
     // If already flat (has x, y directly), use as-is
     if (element.x !== undefined && element.y !== undefined) {
       return { ...element }
@@ -27,34 +27,42 @@ const normalizeTemplateElements = (elements = []) =>
 
     // Flatten nested structure
     const position = element.position || {}
-    const style = element.style || {}
+    // Handle case where style might be an object (last definition wins in JS)
+    const styleObj = typeof element.style === 'object' && element.style !== null 
+      ? element.style 
+      : {}
+    const styleName = element.styleName || (typeof element.style === 'string' ? element.style : 'body')
+
+    // Ensure positions are numbers, not undefined
+    const x = typeof position.x === 'number' ? position.x : 0
+    const y = typeof position.y === 'number' ? position.y : 0
 
     if (element.type === 'text') {
       return {
-        id: element.id,
+        id: element.id || `element-${index}`,
         type: 'text',
-        content: element.content,
-        style: element.styleName || element.style,
-        x: position.x,
-        y: position.y,
-        font: style.fontFamily,
-        fontSize: style.fontSize,
-        fontWeight: style.fontWeight,
-        color: style.fill,
-        textAlign: style.textAlign,
-        backgroundColor: style.backgroundColor,
-        maxWidth: style.maxWidth
+        content: element.content || '',
+        style: styleName,
+        x: x,
+        y: y,
+        font: styleObj.fontFamily || 'Arial',
+        fontSize: styleObj.fontSize || 24,
+        fontWeight: styleObj.fontWeight || 400,
+        color: styleObj.fill || '#000',
+        textAlign: styleObj.textAlign || 'left',
+        backgroundColor: styleObj.backgroundColor || 'transparent',
+        maxWidth: styleObj.maxWidth
       }
     }
 
     // Element type - use icon directly from template
     return {
-      id: element.id,
+      id: element.id || `element-${index}`,
       type: 'element',
-      elementType: element.elementType || element.style,
-      icon: element.icon,
-      x: position.x,
-      y: position.y
+      elementType: element.elementType || (typeof element.style === 'string' ? element.style : 'illustration'),
+      icon: element.icon || '⭐',
+      x: x,
+      y: y
     }
   })
 
@@ -86,19 +94,28 @@ function EditorPage() {
   const hasClearedQuizSelections = useRef(false)
 
 
-  const suggestions = getSuggestions(appState.posterType, appState.topics, appState.colors)
+  // Recalculate suggestions IMMEDIATELY when template or canvas elements change
+  // This ensures suggestions update after EVERY font/color/element change
+  const suggestions = useMemo(() => {
+    console.log('Recalculating suggestions...', {
+      template: appState.selectedTemplate?.name,
+      elementCount: canvasElements.length,
+      elements: canvasElements.map(el => ({ id: el.id, font: el.font, color: el.color }))
+    })
+    return getSuggestions(appState.selectedTemplate, canvasElements)
+  }, [appState.selectedTemplate, canvasElements])
 
   // Clear quiz selections when first reaching the editor page
+  // Note: We keep selectedTemplate so it can populate the canvas
   useEffect(() => {
     if (!hasClearedQuizSelections.current) {
       // Only clear if there are quiz selections present
-      if (appState.posterType || appState.topics?.length > 0 || appState.colors?.length > 0 || appState.selectedTemplate) {
+      if (appState.posterType || appState.topics?.length > 0 || appState.colors?.length > 0) {
         setAppState(prev => ({
           ...prev,
           posterType: null,
           topics: [],
-          colors: [],
-          selectedTemplate: null
+          colors: []
         }))
         hasClearedQuizSelections.current = true
       }
@@ -151,9 +168,11 @@ function EditorPage() {
   }
 
   const handleUpdateElement = (id, updates) => {
+    console.log('🔄 Updating element:', id, 'with updates:', updates)
     const newElements = canvasElements.map(el =>
       el.id === id ? { ...el, ...updates } : el
     )
+    console.log('📝 New canvas elements:', newElements.map(el => ({ id: el.id, font: el.font })))
     setCanvasElements(newElements)
     addToHistory(newElements)
   }
@@ -318,6 +337,8 @@ function EditorPage() {
           handleSave={handleSave}
           handleDownload={handleDownload}
           onSelectProject={handleProjectSelect}
+          suggestions={suggestions}
+          template={appState.selectedTemplate}
         />
         
         <div className="editor-center">
@@ -352,12 +373,19 @@ function EditorPage() {
 
         <SuggestionsSidebar
           suggestions={suggestions}
+          selectedElement={selectedElement}
+          canvasElements={canvasElements}
           onApplySuggestion={(type, value) => {
             if (selectedElement) {
+              console.log('🎨 Applying suggestion:', { type, value, selectedElement })
               if (type === 'font') {
                 handleUpdateElement(selectedElement, { font: value })
-              } else if (type === 'color') {
+              } else if (type === 'color' || type === 'background-color') {
+                console.log('Setting backgroundColor to:', value)
                 handleUpdateElement(selectedElement, { backgroundColor: value })
+              } else if (type === 'text-color') {
+                console.log('Setting text color to:', value)
+                handleUpdateElement(selectedElement, { color: value })
               }
             }
           }}
